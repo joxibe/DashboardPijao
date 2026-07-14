@@ -32,7 +32,10 @@ function getAllPendientes() {
   const values = range.getValues();
   
   if (values.length <= 1) {
-    return []; // Retorna un arreglo vacío si solo están los encabezados o no hay datos
+    return {
+      headers: [],
+      data: []
+    };
   }
   
   // Extraer la primera fila como encabezados originales
@@ -45,6 +48,34 @@ function getAllPendientes() {
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "") // Eliminar acentos/tildes
       .replace(/[^a-z0-9]/g, "");      // Eliminar espacios y caracteres no alfanuméricos
+  });
+
+  const headersInfo = rawHeaders.map(function(header, index) {
+    const key = headers[index];
+    const lowerHeader = String(header).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    let type = "text";
+    
+    if (key === "id") {
+      type = "id";
+    } else if (key === "titulo" || key === "title") {
+      type = "title";
+    } else if (key === "estado" || key === "status") {
+      type = "badge_estado";
+    } else if (key === "prioridad" || key === "priority") {
+      type = "badge_prioridad";
+    } else if (key === "valor" || key === "presupuesto" || key === "costo" || key === "precio" || key === "monto") {
+      type = "currency";
+    } else if (lowerHeader.includes("fecha") || lowerHeader.includes("date")) {
+      type = "date";
+    } else if (key === "descripcion" || key === "description" || key === "observaciones" || key === "notas" || key === "comentarios") {
+      type = "longtext";
+    }
+    
+    return {
+      key: key,
+      label: header,
+      type: type
+    };
   });
   
   const pendientes = [];
@@ -74,5 +105,8 @@ function getAllPendientes() {
     }
   }
   
-  return pendientes;
+  return {
+    headers: headersInfo,
+    data: pendientes
+  };
 }

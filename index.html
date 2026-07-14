@@ -46,6 +46,23 @@
             scrollbar-width: none;
         }
 
+        /* Styled scrollbar for the table */
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 6px;
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f8fafc;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
         .fade-in {
             animation: fadeIn 0.4s ease-out forwards;
         }
@@ -231,34 +248,11 @@
 
                 <!-- VISTA DESKTOP: Tabla (Oculto en móvil, visible en md+) -->
                 <div class="hidden md:block overflow-hidden bg-white border border-slate-200/80 rounded-2xl shadow-sm">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-slate-200/60 text-left">
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="min-w-max w-full divide-y divide-slate-200/60 text-left">
                             <thead class="bg-slate-50/75">
-                                <tr>
-                                    <th scope="col"
-                                        class="py-3.5 pl-6 pr-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                        ID</th>
-                                    <th scope="col"
-                                        class="py-3.5 px-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                        Pendiente</th>
-                                    <th scope="col"
-                                        class="py-3.5 px-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                        Estado</th>
-                                    <th scope="col"
-                                        class="py-3.5 px-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                        Prioridad</th>
-                                    <th scope="col"
-                                        class="py-3.5 px-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                        Fecha Reporte</th>
-                                    <th scope="col"
-                                        class="py-3.5 px-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                        Fecha Cierre</th>
-                                    <th scope="col"
-                                        class="py-3.5 px-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                        Valor</th>
-                                    <th scope="col"
-                                        class="py-3.5 pl-3 pr-6 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                        Responsable</th>
+                                <tr id="desktop-table-headers">
+                                    <!-- Cabeceras dinámicas se inyectan aquí -->
                                 </tr>
                             </thead>
                             <tbody id="desktop-table-body" class="divide-y divide-slate-200/60 bg-white">
@@ -308,50 +302,29 @@
          * Reemplaza la URL debajo con la URL provista por Google Apps Script al
          * publicar tu API como Web App.
          */
-        const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbw32xlG9HyVrmdcHzcY2kggb3RkefIFVnznYY4BNZfgHiqeJjdO_TDxE4Zu-U1xmJCo-A/exec'; // Agrega tu URL del Web App de Apps Script aquí (ej: 'https://script.google.com/macros/s/.../exec')
+        const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbw32xlG9HyVrmdcHzcY2kggb3RkefIFVnznYY4BNZfgHiqeJjdO_TDxE4Zu-U1xmJCo-A/exec';
 
         // Estado global de la aplicación
         let allPendientes = [];
+        let allHeaders = [];
         let currentFilter = 'Todos';
         let searchQuery = '';
 
         // Estilos de los estados (Badges)
         const STATE_STYLES = {
-            'pendiente': {
-                bg: 'bg-amber-50 text-amber-800 border-amber-200/60',
-                dot: 'bg-amber-500',
-                label: 'Pendiente'
-            },
-            'en gestión': {
-                bg: 'bg-blue-50 text-blue-800 border-blue-200/60',
-                dot: 'bg-blue-500',
-                label: 'En gestión'
-            },
-            'en gestion': {
-                bg: 'bg-blue-50 text-blue-800 border-blue-200/60',
-                dot: 'bg-blue-500',
-                label: 'En gestión'
-            },
-            'finalizado': {
-                bg: 'bg-emerald-50 text-emerald-800 border-emerald-200/60',
-                dot: 'bg-emerald-500',
-                label: 'Finalizado'
-            },
-            'reaperturado': {
-                bg: 'bg-rose-50 text-rose-800 border-rose-200/60',
-                dot: 'bg-rose-500',
-                label: 'Reaperturado'
-            }
+            'pendiente': { bg: 'bg-amber-50 text-amber-800 border-amber-200/60', dot: 'bg-amber-500', label: 'Pendiente' },
+            'en gestión': { bg: 'bg-blue-50 text-blue-800 border-blue-200/60', dot: 'bg-blue-500', label: 'En gestión' },
+            'en gestion': { bg: 'bg-blue-50 text-blue-800 border-blue-200/60', dot: 'bg-blue-500', label: 'En gestión' },
+            'finalizado': { bg: 'bg-emerald-50 text-emerald-800 border-emerald-200/60', dot: 'bg-emerald-500', label: 'Finalizado' },
+            'reaperturado': { bg: 'bg-rose-50 text-rose-800 border-rose-200/60', dot: 'bg-rose-500', label: 'Reaperturado' }
         };
 
-        // Estilos de Prioridad
         const PRIORITY_STYLES = {
             'alta': 'bg-red-50 text-red-700 border-red-100',
             'media': 'bg-amber-50 text-amber-700 border-amber-100',
             'baja': 'bg-slate-100 text-slate-600 border-slate-200'
         };
 
-        // Datos Mock de demostración por si no se especifica API
         const MOCK_DATA = [
             { id: "P-001", titulo: "Instalación de luminarias comunales", descripcion: "Instalar reflectores LED en el parque principal y accesos peatonales para mejorar la seguridad.", estado: "En gestión", prioridad: "Alta", fechaReporte: "2026-06-15", responsable: "Comité de Obras", valor: 1250000 },
             { id: "P-002", titulo: "Reparación de alcantarillado calle 4", descripcion: "Arreglar la rejilla principal que colapsa con las lluvias fuertes.", estado: "Pendiente", prioridad: "Alta", fechaReporte: "2026-06-20", responsable: "Acueducto Municipal", valor: 850000 },
@@ -361,123 +334,126 @@
             { id: "P-006", titulo: "Actualización de cámaras de seguridad", descripcion: "Reemplazar 3 cámaras analógicas antiguas por cámaras IP de alta definición en las entradas.", estado: "En gestión", prioridad: "Media", fechaReporte: "2026-06-25", responsable: "Comité de Seguridad", valor: null }
         ];
 
-        // Elementos del DOM
         const loadingState = document.getElementById('loading-state');
         const contentArea = document.getElementById('content-area');
         const mobileView = document.getElementById('mobile-cards-view');
         const desktopView = document.getElementById('desktop-table-body');
         const emptyState = document.getElementById('empty-state');
         const searchInput = document.getElementById('search-input');
-        const syncStatus = document.getElementById('sync-status');
 
-        // Inicialización
         window.addEventListener('DOMContentLoaded', () => {
             initApp();
             setupEventListeners();
         });
 
-        // Carga y procesamiento de datos
+        function extractHeadersFromData(dataArray) {
+            if (!dataArray || dataArray.length === 0) return [];
+            const keys = Object.keys(dataArray[0]);
+            return keys.map(key => {
+                const lowerKey = key.toLowerCase();
+                let type = 'text';
+                if (lowerKey === 'id') type = 'id';
+                else if (['titulo', 'title'].includes(lowerKey)) type = 'title';
+                else if (['descripcion', 'description', 'observaciones', 'notas'].includes(lowerKey)) type = 'longtext';
+                else if (['estado', 'status'].includes(lowerKey)) type = 'badge_estado';
+                else if (['prioridad', 'priority'].includes(lowerKey)) type = 'badge_prioridad';
+                else if (lowerKey.includes('fecha')) type = 'date';
+                else if (['valor', 'monto', 'costo', 'presupuesto'].includes(lowerKey)) type = 'currency';
+                return { key, label: key.charAt(0).toUpperCase() + key.slice(1), type };
+            });
+        }
+
+        function formatCurrency(val) {
+            const num = Number(val);
+            if (isNaN(num) || num <= 0 || val === null || val === undefined || val === '') return '—';
+            return num.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 });
+        }
+
+        function formatDateString(dateStr) {
+            if (!dateStr || dateStr === '-') return '—';
+            const parts = String(dateStr).split('-');
+            if (parts.length === 3) {
+                const [year, month, day] = parts;
+                const months = ['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.'];
+                const mIdx = parseInt(month, 10) - 1;
+                return mIdx >= 0 && mIdx < 12 ? `${parseInt(day, 10)} ${months[mIdx]} ${year}` : dateStr;
+            }
+            return dateStr;
+        }
+
         async function initApp() {
             const syncPing = document.getElementById('sync-ping');
             const syncDot = document.getElementById('sync-dot');
             const syncStatusText = document.getElementById('sync-status');
 
-            // Resetear animación y colores a estado "Sincronizando..."
             syncStatusText.textContent = 'Sincronizando...';
             syncPing.classList.add('animate-ping', 'bg-emerald-400');
             syncDot.className = 'relative inline-flex rounded-full h-2 w-2 bg-emerald-500';
 
             try {
+                let responseData;
                 if (GAS_API_URL && GAS_API_URL.trim() !== '') {
                     const response = await fetch(GAS_API_URL);
-                    if (!response.ok) throw new Error('Error al obtener datos de la API');
-
-                    const data = await response.json();
-                    allPendientes = data || [];
-                    
-                    // Sincronización exitosa -> Detener palpitación
-                    syncStatusText.textContent = 'Sincronizado';
-                    syncPing.classList.remove('animate-ping');
+                    if (!response.ok) throw new Error('Error al obtener datos');
+                    responseData = await response.json();
                 } else {
-                    console.log('Utilizando modo de demostración (mock data). Agrega una URL de Apps Script válida.');
-                    syncStatusText.textContent = 'Modo Demo (Mock)';
-                    syncPing.classList.remove('animate-ping');
-                    allPendientes = MOCK_DATA;
+                    responseData = MOCK_DATA;
                 }
+
+                if (responseData.headers && Array.isArray(responseData.data)) {
+                    allHeaders = responseData.headers;
+                    allPendientes = responseData.data;
+                } else {
+                    allPendientes = Array.isArray(responseData) ? responseData : [];
+                    allHeaders = extractHeadersFromData(allPendientes);
+                }
+                syncStatusText.textContent = 'Sincronizado';
+                syncPing.classList.remove('animate-ping');
             } catch (error) {
-                console.error('Error cargando los pendientes de Apps Script:', error);
                 syncStatusText.textContent = 'Error (Reintentar)';
-                
-                // Detener palpitación y cambiar dot a rojo
                 syncPing.classList.remove('animate-ping', 'bg-emerald-400');
                 syncDot.className = 'relative inline-flex rounded-full h-2 w-2 bg-rose-500';
-                
                 allPendientes = MOCK_DATA;
+                allHeaders = extractHeadersFromData(allPendientes);
             } finally {
-                // Ocultar Skeleton Loader y mostrar contenido
                 loadingState.classList.add('hidden');
                 contentArea.classList.remove('hidden');
-
                 calculateStats();
                 render();
             }
         }
 
-        // Configuración de eventos de UI
         function setupEventListeners() {
-            // Buscador en tiempo real
             searchInput.addEventListener('input', (e) => {
                 searchQuery = e.target.value.toLowerCase();
                 render();
             });
 
-            // Botón de Sincronizar (Recarga manual)
-            const syncBtn = document.getElementById('sync-btn');
-            syncBtn.addEventListener('click', () => {
-                // Mostrar cargadores visuales y re-ejecutar consulta
+            document.getElementById('sync-btn').addEventListener('click', () => {
                 loadingState.classList.remove('hidden');
                 contentArea.classList.add('hidden');
                 initApp();
             });
 
-            // Filtros de estado
-            const filterButtons = document.querySelectorAll('.filter-btn');
-            filterButtons.forEach(btn => {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    // Remover estilos activos de todos los botones
-                    filterButtons.forEach(b => {
-                        b.classList.remove('bg-brand-500', 'text-white', 'shadow-sm', 'shadow-brand-500/10');
-                        b.classList.add('bg-slate-100', 'hover:bg-slate-200', 'text-slate-700');
-                    });
-
-                    // Aplicar estilo activo al actual
-                    btn.classList.remove('bg-slate-100', 'hover:bg-slate-200', 'text-slate-700');
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('bg-brand-500', 'text-white', 'shadow-sm', 'shadow-brand-500/10'));
                     btn.classList.add('bg-brand-500', 'text-white', 'shadow-sm', 'shadow-brand-500/10');
-
                     currentFilter = btn.getAttribute('data-filter');
                     render();
                 });
             });
         }
 
-        // Calcular Estadísticas del Dashboard
         function calculateStats() {
-            const counts = {
-                total: allPendientes.length,
-                pendiente: 0,
-                gestion: 0,
-                finalizado: 0,
-                reaperturado: 0
-            };
-
+            const counts = { total: allPendientes.length, pendiente: 0, gestion: 0, finalizado: 0, reaperturado: 0 };
             allPendientes.forEach(p => {
-                const est = (p.estado || '').toLowerCase().trim();
+                const est = Object.values(p).find(v => typeof v === 'string' && ['pendiente', 'en gestión', 'en gestion', 'finalizado', 'reaperturado'].includes(v.toLowerCase().trim()))?.toLowerCase().trim();
                 if (est === 'pendiente') counts.pendiente++;
                 else if (est === 'en gestión' || est === 'en gestion') counts.gestion++;
                 else if (est === 'finalizado') counts.finalizado++;
                 else if (est === 'reaperturado') counts.reaperturado++;
             });
-
             document.getElementById('stat-total').textContent = counts.total;
             document.getElementById('stat-pendiente').textContent = counts.pendiente;
             document.getElementById('stat-gestion').textContent = counts.gestion;
@@ -485,161 +461,92 @@
             document.getElementById('stat-reaperturado').textContent = counts.reaperturado;
         }
 
-        // Renderizado Dinámico
+        function toggleRowDetail(event, itemId) {
+            if (event.target.closest('.line-clamp-2') || event.target.closest('[onclick^="toggleCellExpansion"]')) return;
+            const detailRow = document.getElementById(`detail-${itemId}`);
+            const mainRow = document.getElementById(`row-${itemId}`);
+            const chevron = document.getElementById(`chevron-${itemId}`);
+            if (detailRow.classList.contains('hidden')) {
+                detailRow.classList.remove('hidden');
+                mainRow.classList.add('bg-slate-50/70');
+                if (chevron) chevron.classList.add('rotate-180');
+            } else {
+                detailRow.classList.add('hidden');
+                mainRow.classList.remove('bg-slate-50/70');
+                if (chevron) chevron.classList.remove('rotate-180');
+            }
+        }
+
+        function toggleCellExpansion(event, element) {
+            event.stopPropagation();
+            element.classList.toggle('line-clamp-2');
+        }
+
+        function toggleMobileCard(event, itemId) {
+            event.stopPropagation();
+            const detailPanel = document.getElementById(`m-detail-${itemId}`);
+            const btn = document.getElementById(`m-btn-${itemId}`);
+            const chevron = document.getElementById(`m-chevron-${itemId}`);
+            const card = document.getElementById(`m-card-${itemId}`);
+            detailPanel.classList.toggle('hidden');
+            chevron.classList.toggle('rotate-180');
+            btn.querySelector('span').textContent = detailPanel.classList.contains('hidden') ? 'Ver detalles' : 'Ocultar detalles';
+            card.classList.toggle('ring-2', !detailPanel.classList.contains('hidden'));
+        }
+
         function render() {
-            // Filtrar elementos
             const filteredData = allPendientes.filter(item => {
-                // Filtro por Estado
-                let matchesState = true;
-                if (currentFilter !== 'Todos') {
-                    const itemState = (item.estado || '').toLowerCase().trim();
-                    const targetFilter = currentFilter.toLowerCase().trim();
-
-                    // Manejo especial para acentos
-                    const normalizedItem = itemState.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                    const normalizedTarget = targetFilter.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-                    matchesState = normalizedItem === normalizedTarget;
-                }
-
-                // Filtro por Texto de Búsqueda
-                let matchesSearch = true;
-                if (searchQuery) {
-                    const title = (item.titulo || '').toLowerCase();
-                    const desc = (item.descripcion || '').toLowerCase();
-                    const resp = (item.responsable || '').toLowerCase();
-                    const id = (item.id || '').toLowerCase();
-
-                    matchesSearch = title.includes(searchQuery) ||
-                        desc.includes(searchQuery) ||
-                        resp.includes(searchQuery) ||
-                        id.includes(searchQuery);
-                }
-
+                const matchesState = currentFilter === 'Todos' || Object.values(item).some(v => String(v).toLowerCase().trim() === currentFilter.toLowerCase().trim());
+                const matchesSearch = !searchQuery || Object.values(item).some(v => String(v).toLowerCase().includes(searchQuery));
                 return matchesState && matchesSearch;
             });
 
-            // Verificar si hay resultados
             if (filteredData.length === 0) {
                 mobileView.innerHTML = '';
                 desktopView.innerHTML = '';
                 emptyState.classList.remove('hidden');
                 return;
-            } else {
-                emptyState.classList.add('hidden');
             }
+            emptyState.classList.add('hidden');
 
-            // Renderizar Vista Móvil (Cards)
             mobileView.innerHTML = filteredData.map(item => {
-                const stateKey = (item.estado || '').toLowerCase().trim();
-                const stateStyle = STATE_STYLES[stateKey] || { bg: 'bg-slate-50 border-slate-200 text-slate-800', dot: 'bg-slate-400', label: item.estado || 'N/A' };
-                const priorityKey = (item.prioridad || '').toLowerCase().trim();
-                const priorityStyle = PRIORITY_STYLES[priorityKey] || 'bg-slate-50 border-slate-200 text-slate-600';
+                const itemId = item.id || 'S/N';
+                const titleVal = item.titulo || 'Sin título';
+                const stateVal = item[allHeaders.find(h => h.type === 'badge_estado')?.key];
+                const stateStyle = STATE_STYLES[(stateVal || '').toLowerCase().trim()] || { bg: 'bg-slate-50 border-slate-200 text-slate-800', dot: 'bg-slate-400', label: stateVal || 'N/A' };
+                const prioVal = item[allHeaders.find(h => h.type === 'badge_prioridad')?.key];
+                const prioStyle = PRIORITY_STYLES[(prioVal || '').toLowerCase().trim()] || 'bg-slate-50 border-slate-200 text-slate-600';
 
-                const formattedValor = (item.valor && Number(item.valor) > 0)
-                    ? Number(item.valor).toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 })
-                    : '-';
-
-                const displayDate = item.fechareporte || item.fechaReporte || 'No asignada';
-                const displayCierre = item.fechacierre || item.fechaCierre || '-';
-
-                // Renderizar cualquier columna extra agregada por el usuario dinámicamente
-                const standardKeys = ['id', 'titulo', 'descripcion', 'estado', 'prioridad', 'fechareporte', 'fechaReporte', 'fechacierre', 'fechaCierre', 'responsable', 'valor'];
-                const extraFieldsHtml = Object.keys(item)
-                    .filter(k => !standardKeys.includes(k) && item[k] !== '' && item[k] !== null && item[k] !== undefined)
-                    .map(k => {
-                        const capitalizedKey = k.charAt(0).toUpperCase() + k.slice(1);
-                        return `
-                            <div class="pt-2 border-t border-slate-100 flex justify-between text-xs">
-                                <span class="font-semibold text-slate-400 uppercase tracking-wider text-[10px]">${capitalizedKey}</span>
-                                <span class="font-medium text-slate-600">${item[k]}</span>
-                            </div>
-                        `;
-                    }).join('');
-
-                return `
-                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all space-y-4">
-                        <div class="flex items-start justify-between">
-                            <span class="text-xs font-mono font-bold text-slate-400">${item.id || 'S/N'}</span>
-                            <div class="flex gap-2">
-                                ${item.prioridad ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold border ${priorityStyle}">${item.prioridad}</span>` : ''}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${stateStyle.bg}">
-                                    <span class="w-1.5 h-1.5 rounded-full ${stateStyle.dot} mr-1.5"></span>
-                                    ${stateStyle.label}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="space-y-1">
-                            <h4 class="text-base font-bold text-slate-900 leading-snug">${item.titulo || 'Sin título'}</h4>
-                            <p class="text-sm text-slate-500 leading-relaxed">${item.descripcion || 'Sin descripción disponible.'}</p>
-                        </div>
-                        <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
-                            <div>
-                                <span class="block text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Fecha Rpt. / Cierre</span>
-                                <span class="font-medium text-slate-600">${displayDate}</span>
-                                <span class="font-semibold text-indigo-500 mx-1">|</span>
-                                <span class="font-medium text-slate-600">${displayCierre}</span>
-                            </div>
-                            <div class="text-right">
-                                <span class="block text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Responsable / Valor</span>
-                                <span class="font-medium text-slate-600">${item.responsable || 'No asignado'}</span>
-                                <span class="block font-bold text-brand-600 mt-0.5">${formattedValor}</span>
-                            </div>
-                        </div>
-                        ${extraFieldsHtml}
-                    </div>
-                `;
+                return `<div id="m-card-${itemId}" class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm transition-all space-y-3">
+                    <div class="flex items-start justify-between"><span class="text-xs font-mono font-bold text-slate-400">${itemId}</span><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${stateStyle.bg}"><span class="w-1.5 h-1.5 rounded-full ${stateStyle.dot} mr-1.5"></span>${stateStyle.label}</span></div>
+                    <h4 class="text-base font-bold text-slate-900">${titleVal}</h4>
+                    <div id="m-detail-${itemId}" class="hidden pt-3 border-t border-slate-100 space-y-1">${allHeaders.map(h => `<div class="flex justify-between py-2 border-b border-slate-100 text-xs"><span class="font-semibold text-slate-400 uppercase tracking-wider text-[10px]">${h.label}</span><span class="font-medium text-slate-700 text-right">${h.type === 'currency' ? formatCurrency(item[h.key]) : h.type === 'date' ? formatDateString(item[h.key]) : item[h.key] || '—'}</span></div>`).join('')}</div>
+                    <button onclick="toggleMobileCard(event, '${itemId}')" id="m-btn-${itemId}" class="w-full text-center py-2 text-xs font-bold text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-xl transition-colors flex items-center justify-center gap-1"><span>Ver detalles</span><svg id="m-chevron-${itemId}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3 h-3 transition-transform"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg></button>
+                </div>`;
             }).join('');
 
-            // Renderizar Vista Desktop (Table Rows)
+            const tableHeadersContainer = document.getElementById('desktop-table-headers');
+            if (tableHeadersContainer) tableHeadersContainer.innerHTML = allHeaders.map(h => `<th scope="col" class="py-3.5 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">${h.label}</th>`).join('') + '<th scope="col" class="py-3.5 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Detalles</th>';
+
             desktopView.innerHTML = filteredData.map(item => {
-                const stateKey = (item.estado || '').toLowerCase().trim();
-                const stateStyle = STATE_STYLES[stateKey] || { bg: 'bg-slate-50 border-slate-200 text-slate-800', dot: 'bg-slate-400', label: item.estado || 'N/A' };
-                const priorityKey = (item.prioridad || '').toLowerCase().trim();
-                const priorityStyle = PRIORITY_STYLES[priorityKey] || 'bg-slate-50 border-slate-200 text-slate-600';
-
-                const formattedValor = (item.valor && Number(item.valor) > 0)
-                    ? Number(item.valor).toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 })
-                    : '-';
-
-                const displayDate = item.fechareporte || item.fechaReporte || 'No asignada';
-                const displayCierre = item.fechacierre || item.fechaCierre || '-';
-
-                // Generar tags para columnas extras
-                const standardKeys = ['id', 'titulo', 'descripcion', 'estado', 'prioridad', 'fechareporte', 'fechaReporte', 'fechacierre', 'fechaCierre', 'responsable', 'valor'];
-                const extraFieldsTableHtml = Object.keys(item)
-                    .filter(k => !standardKeys.includes(k) && item[k] !== '' && item[k] !== null && item[k] !== undefined)
-                    .map(k => {
-                        const capitalizedKey = k.charAt(0).toUpperCase() + k.slice(1);
-                        return `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-50 text-slate-500 border border-slate-200/60 mt-1 mr-1" title="${capitalizedKey}">${capitalizedKey}: ${item[k]}</span>`;
-                    }).join('');
-
-                return `
-                    <tr class="hover:bg-slate-50/50 transition-colors">
-                        <td class="whitespace-nowrap py-4 pl-6 pr-3 text-xs font-bold font-mono text-slate-400">${item.id || 'S/N'}</td>
-                        <td class="py-4 px-3 max-w-sm">
-                            <div class="font-bold text-sm text-slate-900">${item.titulo || 'Sin título'}</div>
-                            <div class="text-xs text-slate-500 mt-0.5 line-clamp-2">${item.descripcion || 'Sin descripción disponible.'}</div>
-                            ${extraFieldsTableHtml ? `<div class="flex flex-wrap mt-1.5">${extraFieldsTableHtml}</div>` : ''}
-                        </td>
-                        <td class="whitespace-nowrap py-4 px-3">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${stateStyle.bg}">
-                                <span class="w-1.5 h-1.5 rounded-full ${stateStyle.dot} mr-1.5"></span>
-                                ${stateStyle.label}
-                            </span>
-                        </td>
-                        <td class="whitespace-nowrap py-4 px-3">
-                            ${item.prioridad ? `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${priorityStyle}">${item.prioridad}</span>` : '<span class="text-slate-400">-</span>'}
-                        </td>
-                        <td class="whitespace-nowrap py-4 px-3 text-sm text-slate-500">${displayDate}</td>
-                        <td class="whitespace-nowrap py-4 px-3 text-sm text-slate-500">${displayCierre}</td>
-                        <td class="whitespace-nowrap py-4 px-3 text-sm font-semibold text-slate-900">${formattedValor}</td>
-                        <td class="whitespace-nowrap py-4 pl-3 pr-6 text-sm font-semibold text-slate-600">${item.responsable || 'No asignado'}</td>
-                    </tr>
-                `;
+                const itemId = item.id || 'S/N';
+                return `<tr id="row-${itemId}" class="group hover:bg-slate-50/50 cursor-pointer transition-colors" onclick="toggleRowDetail(event, '${itemId}')">
+                    ${allHeaders.map(h => {
+                        const val = item[h.key];
+                        let content = val;
+                        if (h.type === 'badge_estado') {
+                            const s = STATE_STYLES[(val || '').toLowerCase().trim()] || { bg: 'bg-slate-50 text-slate-800', dot: 'bg-slate-400', label: val };
+                            content = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${s.bg}"><span class="w-1.5 h-1.5 rounded-full ${s.dot} mr-1.5"></span>${s.label}</span>`;
+                        } else if (h.type === 'currency') content = `<span class="font-semibold text-slate-950">${formatCurrency(val)}</span>`;
+                        else if (h.type === 'date') content = formatDateString(val);
+                        else if (h.type === 'longtext') content = `<div class="line-clamp-2 cursor-pointer hover:text-slate-950 transition-colors" onclick="toggleCellExpansion(event, this)">${val || '—'}</div>`;
+                        return `<td class="py-4 px-4 text-sm align-middle">${content}</td>`;
+                    }).join('')}
+                    <td class="py-4 px-4 text-right pr-6 align-middle"><button class="text-slate-400"><svg id="chevron-${itemId}" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg></button></td>
+                </tr>
+                <tr id="detail-${itemId}" class="hidden"><td colspan="${allHeaders.length + 1}" class="px-6 py-4 bg-slate-50/10"><div class="grid grid-cols-4 gap-3">${allHeaders.map(h => `<div class="space-y-1"><span class="text-[10px] font-bold text-slate-400 uppercase">${h.label}</span><div class="text-xs text-slate-800">${h.type === 'currency' ? formatCurrency(item[h.key]) : h.type === 'date' ? formatDateString(item[h.key]) : item[h.key] || '—'}</div></div>`).join('')}</div></td></tr>`;
             }).join('');
         }
     </script>
 </body>
-
 </html>

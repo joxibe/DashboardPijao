@@ -31,17 +31,24 @@ Para que la API lea y normalice los datos de manera correcta, la **Fila 1** (enc
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | `id` | `titulo` | `descripcion` | `estado` | `prioridad` | `fechaReporte` | `fechaCierre` | `valor` | `responsable` |
 
-### Reglas para los Datos:
+### Reglas para los Datos y Configuración de Menús Desplegables:
 1. **Mayúsculas/Minúsculas en Encabezados**: No importan. El Apps Script convierte automáticamente todas las cabeceras a minúsculas sin acentos ni espacios especiales para generar el JSON.
-2. **Columna `estado`**: Los valores deben coincidir con los filtros de la página:
-   - `Pendiente` (Badge Amarillo)
-   - `En gestión` (Badge Azul)
-   - `Finalizado` (Badge Verde)
-   - `Reaperturado` (Badge Rojo)
-3. **Columna `prioridad`**: Soporta valores como `Alta`, `Media` y `Baja`.
-4. **Columnas de Fecha**: Puedes usar el calendario integrado de Google Sheets (Validación de Datos). La API se encarga de convertir la fecha al formato estándar `AAAA-MM-DD`.
+2. **Columna `estado` (Menú Desplegable)**:
+   - Selecciona la columna `estado` (ej. desde la celda D2 hacia abajo).
+   - Ve a **Datos** > **Validación de datos** > **Agregar regla**.
+   - Criterio: **Menú desplegable**.
+   - Agrega las opciones exactas: `Pendiente`, `En gestión`, `Finalizado`, `Reaperturado`.
+3. **Columna `prioridad` (Menú Desplegable)**:
+   - Selecciona la columna `prioridad` (ej. desde E2 hacia abajo).
+   - Ve a **Datos** > **Validación de datos** > **Agregar regla**.
+   - Criterio: **Menú desplegable**.
+   - Agrega las opciones exactas: `Alta`, `Media`, `Baja`.
+4. **Columnas de Fecha**:
+   - Selecciona la columna de fechas.
+   - Ve a **Datos** > **Validación de datos** > **Agregar regla**.
+   - Criterio: **Es una fecha válida**. Esto habilitará el selector de calendario nativo de Google Sheets al hacer doble clic.
 5. **Columna `valor`**: Ingresa solo números planos (ej. `1200000`). Google Sheets puede darle el formato visual de pesos, y en el dashboard se convertirá automáticamente a moneda COP (`$1.200.000`).
-6. **Columnas adicionales**: Puedes agregar libremente columnas extra a la derecha (ej. *Ubicación*, *Observaciones*). El sistema las detectará y renderizará automáticamente como etiquetas informativas sin requerir cambios de código.
+6. **Columnas adicionales**: Puedes agregar libremente columnas extra a la derecha (ej. *Ubicación*, *Observaciones*, *Comentarios*). El sistema las detectará automáticamente y creará columnas dinámicas en el dashboard respetando el orden del Sheet.
 
 ---
 
