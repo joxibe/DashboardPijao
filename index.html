@@ -445,12 +445,24 @@
             });
         }
 
+        function normalizeString(str) {
+            return String(str || '')
+                .toLowerCase()
+                .trim()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "");
+        }
+
         function calculateStats() {
             const counts = { total: allPendientes.length, pendiente: 0, gestion: 0, finalizado: 0, reaperturado: 0 };
+            const stateHeader = allHeaders.find(h => h.type === 'badge_estado');
+            const stateKey = stateHeader ? stateHeader.key : 'estado';
+            
             allPendientes.forEach(p => {
-                const est = Object.values(p).find(v => typeof v === 'string' && ['pendiente', 'en gestión', 'en gestion', 'finalizado', 'reaperturado'].includes(v.toLowerCase().trim()))?.toLowerCase().trim();
+                const val = p[stateKey];
+                const est = normalizeString(val);
                 if (est === 'pendiente') counts.pendiente++;
-                else if (est === 'en gestión' || est === 'en gestion') counts.gestion++;
+                else if (est === 'en gestion') counts.gestion++;
                 else if (est === 'finalizado') counts.finalizado++;
                 else if (est === 'reaperturado') counts.reaperturado++;
             });
@@ -487,7 +499,7 @@
             const detailPanel = document.getElementById(`m-detail-${itemId}`);
             const btn = document.getElementById(`m-btn-${itemId}`);
             const chevron = document.getElementById(`m-chevron-${itemId}`);
-            const card = document.getElementById(`m-card-${itemId}`);
+            const card = document.getElementById('m-card-' + itemId);
             detailPanel.classList.toggle('hidden');
             chevron.classList.toggle('rotate-180');
             btn.querySelector('span').textContent = detailPanel.classList.contains('hidden') ? 'Ver detalles' : 'Ocultar detalles';
@@ -496,8 +508,12 @@
 
         function render() {
             const filteredData = allPendientes.filter(item => {
-                const matchesState = currentFilter === 'Todos' || Object.values(item).some(v => String(v).toLowerCase().trim() === currentFilter.toLowerCase().trim());
-                const matchesSearch = !searchQuery || Object.values(item).some(v => String(v).toLowerCase().includes(searchQuery));
+                const stateHeader = allHeaders.find(h => h.type === 'badge_estado');
+                const stateKey = stateHeader ? stateHeader.key : 'estado';
+                const stateVal = item[stateKey];
+                
+                const matchesState = currentFilter === 'Todos' || normalizeString(stateVal) === normalizeString(currentFilter);
+                const matchesSearch = !searchQuery || Object.values(item).some(v => normalizeString(v).includes(normalizeString(searchQuery)));
                 return matchesState && matchesSearch;
             });
 
